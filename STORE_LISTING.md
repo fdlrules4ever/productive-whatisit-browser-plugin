@@ -37,7 +37,7 @@ Host PRIVACY.md publicly (e.g. the GitHub file URL or GitHub Pages) and paste th
 
 ## Assets
 - [x] Icon 128×128: `extension/icons/icon-128.png`
-- [ ] At least 1 screenshot, 1280×800 (or 640×400), PNG/JPEG. Show a tooltip over the service picker, using a test or dummy project if you don't want real client names public.
+- [x] Screenshot 1280×800: `store-assets/screenshot-1.png` (real Productive UI, all names replaced with dummy data)
 - [ ] Optional: small promo tile 440×280
 
 ## Before submitting
