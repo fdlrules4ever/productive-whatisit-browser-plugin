@@ -9,11 +9,11 @@
   const MAX_ANCESTOR_HOPS = 4; // hover target may be a child of the truncated element
   const GAP_PX = 6;
   const VIEWPORT_MARGIN_PX = 8;
+  const SUBPIXEL_EPSILON_PX = 0.05;
 
   let hoverTimer = 0;
   let candidate = null; // element waiting for the delay to pass
   let shownFor = null; // element the tooltip is currently showing for
-  let hoverTarget = null; // element under the mouse (may be a child/parent of the truncated one)
   let titleEl = null; // element whose native title we temporarily removed
   let suppressedTitle = null; // that title's value, restored on hide
 
@@ -85,12 +85,14 @@
     if (clamped && el.scrollHeight > el.clientHeight + 1) return true;
     if (el.scrollWidth > el.clientWidth + 1) return true;
 
-    // scrollWidth is rounded to whole pixels; catch sub-pixel overflow too.
+    // scrollWidth is rounded to whole pixels, but Chrome already draws the
+    // ellipsis for sub-pixel overflow (seen in Productive's sidebar: 0.125px).
+    // Text that fits measures exactly 0, so a tiny epsilon is enough.
     if (ellipsis) {
       const range = document.createRange();
       range.selectNodeContents(el);
       const contentWidth = range.getBoundingClientRect().width;
-      return contentWidth - el.getBoundingClientRect().width > 0.5;
+      return contentWidth - el.getBoundingClientRect().width > SUBPIXEL_EPSILON_PX;
     }
     return false;
   }
@@ -114,9 +116,9 @@
   // The browser shows the title of the nearest ancestor-or-self of the hovered
   // node, which is often a wrapping link rather than the truncated label
   // (e.g. Productive's sidebar). Remove that one so only our tooltip shows.
-  function suppressNativeTitle(el) {
-    const start = hoverTarget && hoverTarget.isConnected ? hoverTarget : el;
-    const owner = start.closest("[title]");
+  // Done on hover, not after the delay: the native tooltip can be faster.
+  function suppressNativeTitle(target) {
+    const owner = target.closest("[title]");
     if (!owner) return;
     titleEl = owner;
     suppressedTitle = owner.getAttribute("title");
@@ -130,7 +132,6 @@
     if (!el.isConnected) return;
     mountHost();
 
-    suppressNativeTitle(el);
     tip.textContent = fullTextOf(el);
     tip.classList.remove("visible");
     if (supportsPopover) {
@@ -173,9 +174,8 @@
   function hide() {
     clearTimeout(hoverTimer);
     candidate = null;
-    hoverTarget = null;
-    if (!shownFor) return;
     restoreTitle();
+    if (!shownFor) return;
     shownFor = null;
     tip.classList.remove("visible");
     if (supportsPopover && host.matches(":popover-open")) host.hidePopover();
@@ -192,7 +192,7 @@
       hide();
       if (!el) return;
       candidate = el;
-      hoverTarget = event.target instanceof Element ? event.target : el;
+      suppressNativeTitle(event.target instanceof Element ? event.target : el);
       hoverTimer = setTimeout(() => {
         if (candidate === el) {
           candidate = null;
