@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Full Names fixture</title>
+<style>
+  body { font: 14px system-ui, sans-serif; padding: 24px; background: #f6f6fa; }
+  .box { width: 260px; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 8px; margin-bottom: 16px; }
+  .ell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 4px 0; }
+  .clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .menu { position: absolute; top: 40px; left: 320px; width: 220px; background: #fff; border: 1px solid #ccc; padding: 8px; }
+</style>
+</head>
+<body>
+<h3>Should show tooltip</h3>
+<div class="box">
+  <div class="ell">NPO | CDN Fastly &amp; Akamai | DCS | Budget-21563 (2026/10)</div>
+  <div class="ell"><span>NPO | CDN Professional Services | DCS | Budget-21628 (2026/11)</span></div>
+  <div class="ell" title="Native title: NPO | CDN Fastly &amp; Akamai PO3 | Budget-21505">NPO | CDN Fastly &amp; Akamai PO3 | Budget-21505</div>
+  <div class="clamp">Triple | Operations | Team management &amp; Discussions | 2100: Open hours and some more text to overflow two lines</div>
+</div>
+<h3>Should NOT show tooltip</h3>
+<div class="box">
+  <div class="ell">Short name</div>
+  <div>Wrapping text without ellipsis that is long enough to wrap onto a second line</div>
+</div>
+<div class="menu" id="menu">
+  Hover menu (closes on mouseleave)
+  <div class="ell">FM Group B.V. | Client Investment 2026 | 17543: Resource change</div>
+</div>
+<!-- Loads the real content script, so this page behaves like Productive with the extension installed. -->
+<script src="../extension/content.js"></script>
+<script>
+  const menu = document.getElementById("menu");
+  menu.addEventListener("mouseleave", () => (menu.style.outline = "2px solid red"));
+  menu.addEventListener("mouseenter", () => (menu.style.outline = ""));
+</script>
+</body>
+</html>
