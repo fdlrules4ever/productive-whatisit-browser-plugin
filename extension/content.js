@@ -13,7 +13,9 @@
   let hoverTimer = 0;
   let candidate = null; // element waiting for the delay to pass
   let shownFor = null; // element the tooltip is currently showing for
-  let suppressedTitle = null; // native title temporarily removed while shown
+  let hoverTarget = null; // element under the mouse (may be a child/parent of the truncated one)
+  let titleEl = null; // element whose native title we temporarily removed
+  let suppressedTitle = null; // that title's value, restored on hide
 
   // ---------------------------------------------------------------------------
   // Tooltip element: lives in a shadow root so Productive's CSS can't touch it,
@@ -104,9 +106,21 @@
 
   function fullTextOf(el) {
     const text = (el.innerText || el.textContent || "").replace(/\s+/g, " ").trim();
-    const title = (suppressedTitle ?? el.getAttribute("title") ?? "").trim();
+    const title = (suppressedTitle ?? "").trim();
     // Prefer the native title when it carries more than the visible text.
     return title.length > text.length ? title : text;
+  }
+
+  // The browser shows the title of the nearest ancestor-or-self of the hovered
+  // node, which is often a wrapping link rather than the truncated label
+  // (e.g. Productive's sidebar). Remove that one so only our tooltip shows.
+  function suppressNativeTitle(el) {
+    const start = hoverTarget && hoverTarget.isConnected ? hoverTarget : el;
+    const owner = start.closest("[title]");
+    if (!owner) return;
+    titleEl = owner;
+    suppressedTitle = owner.getAttribute("title");
+    owner.removeAttribute("title");
   }
 
   // ---------------------------------------------------------------------------
@@ -116,12 +130,7 @@
     if (!el.isConnected) return;
     mountHost();
 
-    // Avoid a second, native tooltip appearing on top of ours.
-    if (el.hasAttribute("title")) {
-      suppressedTitle = el.getAttribute("title");
-      el.removeAttribute("title");
-    }
-
+    suppressNativeTitle(el);
     tip.textContent = fullTextOf(el);
     tip.classList.remove("visible");
     if (supportsPopover) {
@@ -153,15 +162,18 @@
   }
 
   function restoreTitle() {
-    if (shownFor && suppressedTitle !== null && !shownFor.hasAttribute("title")) {
-      shownFor.setAttribute("title", suppressedTitle);
+    // Skip if the app re-rendered and set a (possibly new) title meanwhile.
+    if (titleEl && suppressedTitle !== null && !titleEl.hasAttribute("title")) {
+      titleEl.setAttribute("title", suppressedTitle);
     }
+    titleEl = null;
     suppressedTitle = null;
   }
 
   function hide() {
     clearTimeout(hoverTimer);
     candidate = null;
+    hoverTarget = null;
     if (!shownFor) return;
     restoreTitle();
     shownFor = null;
@@ -180,6 +192,7 @@
       hide();
       if (!el) return;
       candidate = el;
+      hoverTarget = event.target instanceof Element ? event.target : el;
       hoverTimer = setTimeout(() => {
         if (candidate === el) {
           candidate = null;
